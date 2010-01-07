@@ -1,0 +1,5 @@
+Potentiometer	KEYWORD1
+
+getValue	KEYWORD2
+getSector	KEYWORD2
+setSectors	KEYWORD2
