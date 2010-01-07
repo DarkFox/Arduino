@@ -23,7 +23,10 @@ decode_results results;
 // light mode variable
 // initial value 0 = off
 int lightMode = 0; // Saved in EEPROM address 0
+
+// Variables for saving the last state before standby
 int lastLightMode = 1;
+int lastPowerVal;
 
 // LED Power variables
 byte redPwr = 0;
@@ -39,7 +42,7 @@ byte blueNew = random(255);
 
 // misc interface variables 
 // colorVal keeps the value of the potentiometer
-int colorVal = 0;       // Color hue (0 - 1023) Saved in EEPROM address 1+2
+int colorVal = 0;   // Color hue (0 - 1023) Saved in EEPROM address 1+2
 int powerVal = 255; // Color brightness (0 - 510) Saved in EEPROM address 3+4
 
 long previousDelayMillis = 0; // Will store last time button was pressed
@@ -109,20 +112,19 @@ void loop()
       case 0x61D638C7: // FM
       if (results.value != 0xFFFFFFFF) {
         if (lightMode == 3) {
-          lightMode = 1;
+          changeMode(1);
         }
         colorVal = random(1023);
       } else {
-        lightMode = 3;
+        changeMode(3);
       }
       break;
       case 0x61D648B7: // Power
       if (results.value != 0xFFFFFFFF) {
         if (lightMode == 0) {
-          lightMode = lastLightMode;
+          changeMode(lastLightMode);
         } else {
-          lastLightMode = lightMode;
-          lightMode = 0;
+          changeMode(0);
         }
       }
       break;
@@ -167,7 +169,7 @@ void loop()
       colorVal = 1000;
       break;
       case 0x61D650AF: // Recall
-      lightMode = 1;
+      changeMode(1);
       break;
       case 0x61D628D7: // Menu
       break;
@@ -227,27 +229,27 @@ void loop()
       if (results.value != 0xFFFFFFFF) {
         switch(lightMode) {
           case 0:
-          lightMode = 1;
+          changeMode(1);
           break;
           case 1:
-          lightMode = 2;
+          changeMode(2);
           break;
           case 2:
-          lightMode = 3;
+          changeMode(3);
           break;
           case 3:
-          lightMode = 1;
+          changeMode(1);
           break;
           default:
-          lightMode = 1;
+          changeMode(1);
         }
       }
       break;
       case 0x61D6F00F: // Audio
-      lightMode=2;
+      changeMode(2);
       break;
       case 0x61D6708F: // Sleep
-      lightMode = 10;
+      changeMode(10);
       break;
       case 0x61D6D827: // Vol+
       if (results.value != 0xFFFFFFFF) {
@@ -294,10 +296,11 @@ void loop()
       break;
       case 0xFFFFFFFF: // repeat
       break;
+      
+      case 0x0: //no code
+      break;
 
       default:
-      Serial.print("Unknown code: ");
-      Serial.println(results.value, HEX);
       break;
     }
     
@@ -320,15 +323,15 @@ void loop()
   }
 
   if (lightMode == 0) {      // turn light off
-    analogWrite(ledRed, 0);
-    analogWrite(ledGreen, 0);
-    analogWrite(ledBlue, 0); 
+    powerVal = 0;
+    fadeTo();
   }
   if (lightMode == 1) {        // set fixed color
-    setColor();
+    /*setColor();
     setPower();
 
-    writeLED();
+    writeLED();*/
+    fadeTo();
   }
 
   if (lightMode == 2) {     // pulse fixed color
@@ -412,28 +415,60 @@ void loop()
       writeLED();
       
       if (powerVal == 0) {
-        lightMode = 0;
         powerVal = 255;
+        changeMode(0);
       }
     }
   }
 }
 
+void changeMode(int mode) {
+  if ((lightMode == 0) && (mode != 0)) {
+    powerVal = lastPowerVal;
+  }
+  
+  switch(mode) {
+    case 0:
+    lastLightMode = lightMode;
+    lastPowerVal = powerVal;
+    lightMode = 0;
+    break;
+    case 1:
+    lightMode = 1;
+    break;
+    case 2:
+    lightMode = 2;
+    break;
+    case 3:
+    lightMode = 3;
+    break;
+    case 4:
+    lightMode = 1;
+    break;
+    case 10:
+    lightMode = 10;
+    break;
+  }
+}
+
 void turnOn(int mode) {
   if (lightMode == 0) {
-    lightMode = mode;
+    changeMode(mode);
   }
 }
 
 void fadeTo() {
   int colors[3];
   calcColor(colors);
-  
+  calcPower(colors);
+
   redNew = colors[0];
   greenNew = colors[1];
   blueNew = colors[2];
-  
-  if ((redPwr != redNew) && (greenPwr != greenNew) && (bluePwr != blueNew)) {
+
+  if (millis() - previousMillis > 1) {
+    // save the last time you blinked the LED 
+    previousMillis = millis();
     if (redPwr > redNew) {
       redPwr--;
     } 
