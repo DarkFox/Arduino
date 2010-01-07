@@ -426,36 +426,85 @@ void turnOn(int mode) {
 }
 
 void fadeTo() {
-  if (redPwr > redNew) {
-    redPwr--;
-  } 
-  if (redPwr < redNew) {
-    redPwr++;
-  }
-  if (greenPwr > greenNew) {
-    greenPwr--;
-  } 
-  if (greenPwr < greenNew) {
-    greenPwr++;
-  }
-  if (bluePwr > blueNew) {
-    bluePwr--;
-  } 
-  if (bluePwr < blueNew) {
-    bluePwr++;
-  }
-
-  // If all Pwr match New get new colors
-  if ((redPwr == redNew) && (greenPwr == greenNew) && (bluePwr == blueNew)) {
-    redNew = random(254);
-    greenNew = random(254);
-    blueNew = random(254);
-  }
+  int colors[3];
+  calcColor(colors);
   
-  writeLED();
+  redNew = colors[0];
+  greenNew = colors[1];
+  blueNew = colors[2];
+  
+  if ((redPwr != redNew) && (greenPwr != greenNew) && (bluePwr != blueNew)) {
+    if (redPwr > redNew) {
+      redPwr--;
+    } 
+    if (redPwr < redNew) {
+      redPwr++;
+    }
+    if (greenPwr > greenNew) {
+      greenPwr--;
+    } 
+    if (greenPwr < greenNew) {
+      greenPwr++;
+    }
+    if (bluePwr > blueNew) {
+      bluePwr--;
+    } 
+    if (bluePwr < blueNew) {
+      bluePwr++;
+    }
+    writeLED();
+  }
 }
 
-int* calcColor() {
+void setColor() {
+  int colors[3];
+  calcColor(colors);
+
+  redPwr = colors[0];
+  greenPwr = colors[1];
+  bluePwr = colors[2];
+}
+
+
+void calcPower(int *colors) {
+  int red = colors[0];
+  int green = colors[1];
+  int blue = colors[2];
+  
+  if (powerVal <= 255) {
+    red = map(red, 0, 255, 0, powerVal);
+    green = map(green, 0, 255, 0, powerVal);
+    blue = map(blue, 0, 255, 0, powerVal);
+  } else {
+    int lowVal = powerVal-255;
+    red = map(red, 0, 255, lowVal, 255);
+    green = map(green, 0, 255, lowVal, 255);
+    blue = map(blue, 0, 255, lowVal, 255);
+  }
+  
+  colors[0] = red;
+  colors[1] = green;
+  colors[2] = blue;
+}  
+  
+void setPower() {
+  int colors[3] = {redPwr, greenPwr, bluePwr};
+  calcPower(colors);
+  
+  redPwr = colors[0];
+  greenPwr = colors[1];
+  bluePwr = colors[2];
+}
+
+void writeLED() {
+  // display the colors
+  analogWrite(ledRed, redPwr);
+  analogWrite(ledGreen, greenPwr);
+  analogWrite(ledBlue, bluePwr);
+}
+
+
+void calcColor(int *colors) {
   int red;
   int green;
   int blue;
@@ -507,37 +556,8 @@ int* calcColor() {
     green = 255;
     blue = 255;
   }
-  
-  int colors[3] = {red, green, blue};
-  
-  return colors;
-}
 
-void setColor() {
-   int* colors = calcColor();
-   
-   redPwr = colors[0];
-   greenPwr = colors[1];
-   bluePwr = colors[2];
-}
-
-
-void setPower() {
-  if (powerVal <= 255) {
-    redPwr = map(redPwr, 0, 255, 0, powerVal);
-    greenPwr = map(greenPwr, 0, 255, 0, powerVal);
-    bluePwr = map(bluePwr, 0, 255, 0, powerVal);
-  } else {
-    int lowVal = powerVal-255;
-    redPwr = map(redPwr, 0, 255, lowVal, 255);
-    greenPwr = map(greenPwr, 0, 255, lowVal, 255);
-    bluePwr = map(bluePwr, 0, 255, lowVal, 255);
-  }
-}
-
-void writeLED() {
-  // display the colors
-  analogWrite(ledRed, redPwr);
-  analogWrite(ledGreen, greenPwr);
-  analogWrite(ledBlue, bluePwr);
+  colors[0] = red;
+  colors[1] = green;
+  colors[2] = blue;
 }
