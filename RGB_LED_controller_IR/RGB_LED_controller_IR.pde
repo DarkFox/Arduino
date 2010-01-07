@@ -166,7 +166,7 @@ void loop()
       break;
       case 0x61D600FF: // 0
       turnOn(1);
-      colorVal = 1000;
+      colorVal = 975;
       break;
       case 0x61D650AF: // Recall
       changeMode(1);
