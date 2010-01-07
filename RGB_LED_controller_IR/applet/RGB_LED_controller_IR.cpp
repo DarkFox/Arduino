@@ -141,43 +141,43 @@ void loop()
       break;
       case 0x61D6807F: // 1
       turnOn(1);
-      colorVal = 0;
+      colorVal = 0; // Red
       break;
       case 0x61D640BF: // 2
       turnOn(1);
-      colorVal = 40;
+      colorVal = 40; // Orange
       break;
       case 0x61D6C03F: // 3
       turnOn(1);
-      colorVal = 150;
+      colorVal = 150; // Yellow
       break;
       case 0x61D620DF: // 4
       turnOn(1);
-      colorVal = 250;
+      colorVal = 250; // Lime
       break;
       case 0x61D6A05F: // 5
       turnOn(1);
-      colorVal = 341;
+      colorVal = 341; // Green
       break;
       case 0x61D6609F: // 6
       turnOn(1);
-      colorVal = 380;
+      colorVal = 380; // Cyan
       break;
       case 0x61D6E01F: // 7
       turnOn(1);
-      colorVal = 590;
+      colorVal = 590; // Light blue
       break;
       case 0x61D610EF: // 8
       turnOn(1);
-      colorVal = 682;
+      colorVal = 682; // Blue
       break;
       case 0x61D6906F: // 9
       turnOn(1);
-      colorVal = 745;
+      colorVal = 745; // Purple
       break;
       case 0x61D600FF: // 0
       turnOn(1);
-      colorVal = 975;
+      colorVal = 975; // Pink
       break;
       case 0x61D650AF: // Recall
       changeMode(1);
@@ -186,7 +186,7 @@ void loop()
       break;
       case 0x61D6E817: // +100
       turnOn(1);
-      colorVal = 1024;
+      powerVal = 510; // White
       break;
       case 0x61D608F7: // Info
       if (results.value != 0xFFFFFFFF) {
@@ -595,12 +595,6 @@ void calcColor(int *colors) {
     red = 255;
     green = 0;
     blue = map(colorVal, 1023, 852, 0, 255);
-  }
-  
-  if (colorVal == 1024) {
-    red = 255;
-    green = 255;
-    blue = 255;
   }
 
   colors[0] = red;
