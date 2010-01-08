@@ -25,8 +25,8 @@ decode_results results;
 int lightMode = 0; // Saved in EEPROM address 0
 
 // Variables for saving the last state before standby
-int lastLightMode = 1;
-int lastPowerVal;
+int lastLightMode = 1; // EEPROM address 7
+int lastPowerVal; // EEPROM address 8+9
 
 // LED Power variables
 byte redPwr = 0;
@@ -49,7 +49,7 @@ long previousDelayMillis = 0; // Will store last time button was pressed
 long buttonDelay = 200;        // Delay before repeating button press
 
 long previousMillis = 0;      // will store last time thing was updated
-long interval = 50;           // interval at which to blink (milliseconds) (0 - 4095) Saved in EEPROM address 7+15
+long interval = 50;           // interval at which to blink (milliseconds) (0 - 4095) Saved in EEPROM address 5+6
 
 int pulseState = 255; // Save where the pulse is. Starting high.
 int pulseDir = 0;     // Pulse direction
@@ -77,6 +77,12 @@ void setup()
   int iV1 = EEPROM.read(5);
   int iV2 = EEPROM.read(6);
   interval = iV1*256+iV2;
+  
+  
+  lastLightMode = EEPROM.read(7);
+  int lpV1 = EEPROM.read(8);
+  int lpV2 = EEPROM.read(9);
+  lastPowerVal = lpV1*256+lpV2;
 
   //pinMode(potPin, INPUT);
 
@@ -119,6 +125,7 @@ void loop()
         changeMode(3);
       }
       break;
+ 
       case 0x61D648B7: // Power
       if (results.value != 0xFFFFFFFF) {
         if (lightMode == 0) {
@@ -128,55 +135,69 @@ void loop()
         }
       }
       break;
+ 
       case 0x61D6807F: // 1
       turnOn(1);
       colorVal = 0; // Red
       break;
+ 
       case 0x61D640BF: // 2
       turnOn(1);
       colorVal = 40; // Orange
       break;
+
       case 0x61D6C03F: // 3
       turnOn(1);
       colorVal = 150; // Yellow
       break;
+
       case 0x61D620DF: // 4
       turnOn(1);
       colorVal = 250; // Lime
       break;
+
       case 0x61D6A05F: // 5
       turnOn(1);
       colorVal = 341; // Green
       break;
+
       case 0x61D6609F: // 6
       turnOn(1);
       colorVal = 380; // Cyan
       break;
+
       case 0x61D6E01F: // 7
       turnOn(1);
       colorVal = 590; // Light blue
       break;
+
       case 0x61D610EF: // 8
       turnOn(1);
       colorVal = 682; // Blue
       break;
+
       case 0x61D6906F: // 9
       turnOn(1);
       colorVal = 745; // Purple
       break;
+
       case 0x61D600FF: // 0
       turnOn(1);
       colorVal = 975; // Pink
       break;
+
       case 0x61D650AF: // Recall
       changeMode(1);
       break;
+
       case 0x61D628D7: // Menu
       break;
+
       case 0x61D6E817: // +100
       turnOn(1);
       powerVal = 510; // White
       break;
+
       case 0x61D608F7: // Info
       if (results.value != 0xFFFFFFFF) {
         Serial.println("--Info--");
@@ -196,6 +217,7 @@ void loop()
         Serial.println(bluePwr, DEC);
       }
       break;
+
       case 0x61D6D02F: // Up
       if (results.value != 0xFFFFFFFF) {
         interval++;
@@ -206,6 +228,7 @@ void loop()
         interval = 4095;
       }
       break;
+
       case 0x61D6A857: // Down
       if (results.value != 0xFFFFFFFF) {
         interval--;
@@ -216,15 +239,20 @@ void loop()
         interval = 0;
       }
       break;
+
       case 0x61D618E7: // Left
       break;
+
       case 0x61D630CF: // Right
       break;
+
       case 0x61D66897: // OK
       interval = 50;
       break;
+
       case 0x61D68877: // TV/AV
       break;
+
       case 0x61D6B04F: // Mode
       if (results.value != 0xFFFFFFFF) {
         switch(lightMode) {
@@ -245,12 +273,15 @@ void loop()
         }
       }
       break;
+
       case 0x61D6F00F: // Audio
       changeMode(2);
       break;
+
       case 0x61D6708F: // Sleep
       changeMode(10);
       break;
+
       case 0x61D6D827: // Vol+
       if (results.value != 0xFFFFFFFF) {
         powerVal++;
@@ -261,6 +292,7 @@ void loop()
         powerVal = 510;
       }
       break;
+
       case 0x61D6F807: // Vol-
       if (results.value != 0xFFFFFFFF) {
         powerVal--;
@@ -271,9 +303,11 @@ void loop()
         powerVal = 0;
       }
       break;
+
       case 0x61D6C837: // Mute
       powerVal = 255;
       break;
+
       case 0x61D658A7: // Chan+
       if (results.value != 0xFFFFFFFF) {
         colorVal++;
@@ -284,6 +318,7 @@ void loop()
         colorVal = colorVal-1023;
       }
       break;
+
       case 0x61D67887: // Chan-
       if (results.value != 0xFFFFFFFF) {
         colorVal--;
@@ -294,6 +329,7 @@ void loop()
         colorVal = colorVal+1023;
       }
       break;
+
       case 0xFFFFFFFF: // repeat
       break;
       
@@ -304,22 +340,30 @@ void loop()
       break;
     }
     
-    EEPROM.write(0, lightMode);
+    if (lightMode != EEPROM.read(0)) {
+      EEPROM.write(0, lightMode);
+    }
     
     int cV1 = colorVal / 256;
     int cV2 = colorVal % 256;
-    EEPROM.write(1, cV1);
-    EEPROM.write(2, cV2);
+    if (cV2 != EEPROM.read(2)) {  
+      EEPROM.write(1, cV1);
+      EEPROM.write(2, cV2);
+    }
     
     int pV1 = powerVal / 256;
     int pV2 = powerVal % 256;
-    EEPROM.write(3, pV1);
-    EEPROM.write(4, pV2);
+    if (pV2 != EEPROM.read(4)) {
+      EEPROM.write(3, pV1);
+      EEPROM.write(4, pV2);
+    }
     
     int iV1 = interval / 256;
     int iV2 = interval % 256;
-    EEPROM.write(5, iV1);
-    EEPROM.write(6, iV2);
+    if (iV2 != EEPROM.read(6)) {
+      EEPROM.write(5, iV1);
+      EEPROM.write(6, iV2);
+    }
   }
 
   if (lightMode == 0) {      // turn light off
@@ -431,20 +475,31 @@ void changeMode(int mode) {
     case 0:
     lastLightMode = lightMode;
     lastPowerVal = powerVal;
+    EEPROM.write(7, lastLightMode);
+    
+    int values[2];
+    calcBig(lastPowerVal, values);
+    EEPROM.write(8, values[0]);
+    EEPROM.write(9, values[1]);
     lightMode = 0;
     break;
+
     case 1:
     lightMode = 1;
     break;
+
     case 2:
     lightMode = 2;
     break;
+
     case 3:
     lightMode = 3;
     break;
+
     case 4:
     lightMode = 1;
     break;
+
     case 10:
     lightMode = 10;
     break;
@@ -589,4 +644,9 @@ void calcColor(int *colors) {
   colors[0] = red;
   colors[1] = green;
   colors[2] = blue;
+}
+
+void calcBig(int value, int *values) {
+  values[0] = value / 256;
+  values[1] = value % 256;
 }
