@@ -175,12 +175,12 @@ void loop()
 
       case 0x61D6609F: // 6
       turnOn(1);
-      colorVal = 380; // Cyan
+      colorVal = 400; // Cyan
       break;
 
       case 0x61D6E01F: // 7
       turnOn(1);
-      colorVal = 590; // Light blue
+      colorVal = 615; // Light blue
       break;
 
       case 0x61D610EF: // 8
