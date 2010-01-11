@@ -3,6 +3,7 @@
 /* 
 RGB LED IR controller for Arduino
 By Martin "DarkFox" Eberhardt 2009-12-29
+http://darkfox.dk/
 
 Based on RGB LED controller by Markus Ulfberg 2009-05-19
 http://genericnerd.blogspot.com/2009/05/arduino-mood-light-controller.html
@@ -16,10 +17,10 @@ void changeMode(int mode);
 void turnOn(int mode);
 void fadeTo();
 void setColor();
-void calcPower(int *colors);
 void setPower();
 void writeLED();
 void calcColor(int *colors);
+void calcPower(int *colors);
 void calcBig(int value, int *values);
 int ledRed = 10;
 int ledGreen = 9;
@@ -29,8 +30,10 @@ int lastCode;
 int code;
 int RECV_PIN = 2;
 IRrecv irrecv(RECV_PIN);
-
 decode_results results;
+
+int tempPin = 3;
+int lightPin = 4;
 
 // light mode variable
 // initial value 0 = off
@@ -71,6 +74,9 @@ void setup()
   pinMode(ledRed, OUTPUT);
   pinMode(ledGreen, OUTPUT);
   pinMode(ledBlue, OUTPUT);
+  
+  pinMode(tempPin, INPUT);
+  pinMode(lightPin, INPUT);
   
   lightMode = EEPROM.read(0);
   
@@ -277,9 +283,6 @@ void loop()
           case 2:
           changeMode(3);
           break;
-          case 3:
-          changeMode(1);
-          break;
           default:
           changeMode(1);
         }
@@ -457,7 +460,7 @@ void loop()
       writeLED();
     }
   }
-  
+
   if (lightMode == 10) { // Sleep mode
     if (millis() - previousMillis > 8000) {
       // save the last time you blinked the LED 
@@ -493,29 +496,10 @@ void changeMode(int mode) {
     calcBig(lastPowerVal, values);
     EEPROM.write(8, values[0]);
     EEPROM.write(9, values[1]);
-    lightMode = 0;
-    break;
-
-    case 1:
-    lightMode = 1;
-    break;
-
-    case 2:
-    lightMode = 2;
-    break;
-
-    case 3:
-    lightMode = 3;
-    break;
-
-    case 4:
-    lightMode = 1;
-    break;
-
-    case 10:
-    lightMode = 10;
     break;
   }
+  
+  lightMode = mode;
 }
 
 void turnOn(int mode) {
@@ -566,28 +550,6 @@ void setColor() {
   greenPwr = colors[1];
   bluePwr = colors[2];
 }
-
-
-void calcPower(int *colors) {
-  int red = colors[0];
-  int green = colors[1];
-  int blue = colors[2];
-  
-  if (powerVal <= 255) {
-    red = map(red, 0, 255, 0, powerVal);
-    green = map(green, 0, 255, 0, powerVal);
-    blue = map(blue, 0, 255, 0, powerVal);
-  } else {
-    int lowVal = powerVal-255;
-    red = map(red, 0, 255, lowVal, 255);
-    green = map(green, 0, 255, lowVal, 255);
-    blue = map(blue, 0, 255, lowVal, 255);
-  }
-  
-  colors[0] = red;
-  colors[1] = green;
-  colors[2] = blue;
-}  
   
 void setPower() {
   int colors[3] = {redPwr, greenPwr, bluePwr};
@@ -653,6 +615,27 @@ void calcColor(int *colors) {
     blue = map(colorVal, 1023, 852, 0, 255);
   }
 
+  colors[0] = red;
+  colors[1] = green;
+  colors[2] = blue;
+}
+
+void calcPower(int *colors) {
+  int red = colors[0];
+  int green = colors[1];
+  int blue = colors[2];
+  
+  if (powerVal <= 255) {
+    red = map(red, 0, 255, 0, powerVal);
+    green = map(green, 0, 255, 0, powerVal);
+    blue = map(blue, 0, 255, 0, powerVal);
+  } else {
+    int lowVal = powerVal-255;
+    red = map(red, 0, 255, lowVal, 255);
+    green = map(green, 0, 255, lowVal, 255);
+    blue = map(blue, 0, 255, lowVal, 255);
+  }
+  
   colors[0] = red;
   colors[1] = green;
   colors[2] = blue;
