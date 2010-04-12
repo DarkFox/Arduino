@@ -82,11 +82,11 @@ void setup()
   
   int cV1 = EEPROM.read(1);
   int cV2 = EEPROM.read(2);
-  colorVal = cV1*256+cV2;
+  colorVal = cV1*255+cV2;
 
   int pV1 = EEPROM.read(3);
   int pV2 = EEPROM.read(4);
-  powerVal = pV1*256+pV2;
+  powerVal = pV1*255+pV2;
   
   if (powerVal == 0) {
     powerVal = 255;
@@ -94,13 +94,13 @@ void setup()
   
   int iV1 = EEPROM.read(5);
   int iV2 = EEPROM.read(6);
-  interval = iV1*256+iV2;
+  interval = iV1*255+iV2;
   
   
   lastLightMode = EEPROM.read(7);
   int lpV1 = EEPROM.read(8);
   int lpV2 = EEPROM.read(9);
-  lastPowerVal = lpV1*256+lpV2;
+  lastPowerVal = lpV1*255+lpV2;
 
   //pinMode(potPin, INPUT);
 
@@ -345,40 +345,26 @@ void loop()
       }
       break;
 
-      case 0xFFFFFFFF: // repeat
-      break;
-      
-      case 0x0: //no code
-      break;
-
       default:
       break;
     }
     
-    if (lightMode != EEPROM.read(0)) {
-      EEPROM.write(0, lightMode);
-    }
+    EEPROM.write(0, lightMode);
     
-    int cV1 = colorVal / 256;
-    int cV2 = colorVal % 256;
-    if (cV2 != EEPROM.read(2)) {  
-      EEPROM.write(1, cV1);
-      EEPROM.write(2, cV2);
-    }
+    int cV1 = colorVal / 255;
+    int cV2 = colorVal % 255;
+    EEPROM.write(1, cV1);
+    EEPROM.write(2, cV2);
     
-    int pV1 = powerVal / 256;
-    int pV2 = powerVal % 256;
-    if (pV2 != EEPROM.read(4)) {
-      EEPROM.write(3, pV1);
-      EEPROM.write(4, pV2);
-    }
+    int pV1 = powerVal / 255;
+    int pV2 = powerVal % 255;
+    EEPROM.write(3, pV1);
+    EEPROM.write(4, pV2);
     
-    int iV1 = interval / 256;
-    int iV2 = interval % 256;
-    if (iV2 != EEPROM.read(6)) {
-      EEPROM.write(5, iV1);
-      EEPROM.write(6, iV2);
-    }
+    int iV1 = interval / 255;
+    int iV2 = interval % 255;
+    EEPROM.write(5, iV1);
+    EEPROM.write(6, iV2);
   }
 
   if (lightMode == 0) {      // turn light off
@@ -642,8 +628,8 @@ void calcPower(int *colors) {
 }
 
 void calcBig(int value, int *values) {
-  values[0] = value / 256;
-  values[1] = value % 256;
+  values[0] = value / 255;
+  values[1] = value % 255;
 }
 
 int main(void)
