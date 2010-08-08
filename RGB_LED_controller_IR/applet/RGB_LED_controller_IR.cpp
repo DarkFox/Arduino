@@ -21,7 +21,8 @@ void setPower();
 void writeLED();
 void calcColor(int *colors);
 void calcPower(int *colors);
-void calcBig(int value, int *values);
+void saveBig(int value, int address0, int address1);
+int loadBig(int address0, int address1);
 int ledRed = 10;
 int ledGreen = 9;
 int ledBlue = 6;
@@ -80,27 +81,19 @@ void setup()
   
   lightMode = EEPROM.read(0);
   
-  int cV1 = EEPROM.read(1);
-  int cV2 = EEPROM.read(2);
-  colorVal = cV1*255+cV2;
+  colorVal = loadBig(1,2);
 
-  int pV1 = EEPROM.read(3);
-  int pV2 = EEPROM.read(4);
-  powerVal = pV1*255+pV2;
+  powerVal = loadBig(3,4);
   
   if (powerVal == 0) {
     powerVal = 255;
   }
   
-  int iV1 = EEPROM.read(5);
-  int iV2 = EEPROM.read(6);
-  interval = iV1*255+iV2;
-  
+  interval = loadBig(5,6);
   
   lastLightMode = EEPROM.read(7);
-  int lpV1 = EEPROM.read(8);
-  int lpV2 = EEPROM.read(9);
-  lastPowerVal = lpV1*255+lpV2;
+  
+  lastPowerVal = loadBig(8,9);
 
   //pinMode(potPin, INPUT);
 
@@ -186,7 +179,7 @@ void loop()
 
       case 0x61D6E01F: // 7
       turnOn(1);
-      colorVal = 615; // Light blue
+      colorVal = 630; // Light blue
       break;
 
       case 0x61D610EF: // 8
@@ -351,21 +344,12 @@ void loop()
     
     EEPROM.write(0, lightMode);
     
-    int cV1 = colorVal / 255;
-    int cV2 = colorVal % 255;
-    EEPROM.write(1, cV1);
-    EEPROM.write(2, cV2);
+    saveBig(colorVal, 1, 2);
     
-    int pV1 = powerVal / 255;
-    int pV2 = powerVal % 255;
-    EEPROM.write(3, pV1);
-    EEPROM.write(4, pV2);
+    saveBig(powerVal, 3, 4);
     
-    int iV1 = interval / 255;
-    int iV2 = interval % 255;
-    EEPROM.write(5, iV1);
-    EEPROM.write(6, iV2);
-  }
+    saveBig(interval, 5, 6);
+  } // End IR control
 
   if (lightMode == 0) {      // turn light off
     powerVal = 0;
@@ -449,7 +433,6 @@ void loop()
 
   if (lightMode == 10) { // Sleep mode
     if (millis() - previousMillis > 8000) {
-      // save the last time you blinked the LED 
       previousMillis = millis();
       
       powerVal--;
@@ -478,10 +461,7 @@ void changeMode(int mode) {
     lastPowerVal = powerVal;
     EEPROM.write(7, lastLightMode);
     
-    int values[2];
-    calcBig(lastPowerVal, values);
-    EEPROM.write(8, values[0]);
-    EEPROM.write(9, values[1]);
+    saveBig(lastPowerVal, 8, 9);
     break;
   }
   
@@ -627,9 +607,18 @@ void calcPower(int *colors) {
   colors[2] = blue;
 }
 
-void calcBig(int value, int *values) {
-  values[0] = value / 255;
-  values[1] = value % 255;
+void saveBig(int value, int address0, int address1) {
+  int value1 = value / 255;
+  int value2 = value % 255;
+  
+  EEPROM.write(address0, value1);
+  EEPROM.write(address1, value2);
+}
+
+int loadBig(int address0, int address1) {
+  int v1 = EEPROM.read(address0);
+  int v2 = EEPROM.read(address1);
+  return v1*255+v2; 
 }
 
 int main(void)
