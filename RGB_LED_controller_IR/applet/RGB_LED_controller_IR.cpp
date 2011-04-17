@@ -1,5 +1,7 @@
+#include <stdarg.h>
 #include <EEPROM.h>
 #include <IRremote.h>
+
 /* 
 RGB LED IR controller for Arduino
 By Martin "DarkFox" Eberhardt 2009-12-29
@@ -15,26 +17,24 @@ void setup();
 void loop();
 void changeMode(int mode);
 void turnOn(int mode);
-void fadeTo();
+void fadeTo(int fadeSpeed);
 void setColor();
 void setPower();
 void writeLED();
+boolean isColor(int red, int green, int blue);
 void calcColor(int *colors);
 void calcPower(int *colors);
 void saveBig(int value, int address0, int address1);
 int loadBig(int address0, int address1);
-int ledRed = 10;
-int ledGreen = 9;
-int ledBlue = 6;
+int ledRed = 9;
+int ledGreen = 6;
+int ledBlue = 5;
 
 int lastCode;
 int code;
 int RECV_PIN = 2;
 IRrecv irrecv(RECV_PIN);
 decode_results results;
-
-int tempPin = 3;
-int lightPin = 4;
 
 // light mode variable
 // initial value 0 = off
@@ -49,7 +49,7 @@ byte redPwr = 0;
 byte greenPwr = 0;
 byte bluePwr = 0;
 
-// Variables for random
+// Variables for colors to fade to
 // set the initial random colors
 byte redNew = random(255);
 byte greenNew = random(255);
@@ -61,7 +61,11 @@ byte blueNew = random(255);
 int colorVal = 0;   // Color hue (0 - 1023) Saved in EEPROM address 1+2
 int powerVal = 255; // Color brightness (0 - 510) Saved in EEPROM address 3+4
 
-long previousDelayMillis = 0; // Will store last time button was pressed
+long startCmd = 0; // Store when first command was sent
+long cmdTimeout = 10000; // Timeout for commands
+int serialStep = 0; // What step are we at in sending a serial command.
+
+long previousDelayMillis = 0;  // Will store last time button was pressed
 long buttonDelay = 200;        // Delay before repeating button press
 
 long previousMillis = 0;      // will store last time thing was updated
@@ -71,13 +75,11 @@ int pulseState = 255; // Save where the pulse is. Starting high.
 int pulseDir = 0;     // Pulse direction
 
 void setup()
-{
+{  
   pinMode(ledRed, OUTPUT);
   pinMode(ledGreen, OUTPUT);
   pinMode(ledBlue, OUTPUT);
-  
-  pinMode(tempPin, INPUT);
-  pinMode(lightPin, INPUT);
+ 
   
   lightMode = EEPROM.read(0);
   
@@ -99,18 +101,15 @@ void setup()
 
   irrecv.enableIRIn(); // Start the receiver
 
-  // serial for debugging purposes only
+  // serial
   Serial.begin(9600);
 }
 
 void loop()
-{  
-  // read the potentiometer position
-  //colorVal = analogRead(potPin);
-  //interval = colorVal;
+{
 
   if (irrecv.decode(&results)) {
-    //erial.println(results.value, HEX);
+    //Serial.println(results.value, HEX);
     irrecv.resume(); // Receive the next value
 
     if (results.value != 0xFFFFFFFF) {
@@ -159,7 +158,7 @@ void loop()
 
       case 0x61D6C03F: // 3
       turnOn(1);
-      colorVal = 150; // Yellow
+      colorVal = 140; // Yellow
       break;
 
       case 0x61D620DF: // 4
@@ -276,6 +275,10 @@ void loop()
           case 2:
           changeMode(3);
           break;
+          case 3:
+          colorVal = 0;
+          changeMode(4);
+          break;          
           default:
           changeMode(1);
         }
@@ -353,14 +356,14 @@ void loop()
 
   if (lightMode == 0) {      // turn light off
     powerVal = 0;
-    fadeTo();
+    fadeTo(1);
   }
   if (lightMode == 1) {        // set fixed color
     /*setColor();
     setPower();
 
     writeLED();*/
-    fadeTo();
+    fadeTo(1);
   }
 
   if (lightMode == 2) {     // pulse fixed color
@@ -396,7 +399,7 @@ void loop()
     }
   }
 
-  if (lightMode == 3) {  // randomsize colorNew and step colorPwr to it
+  if (lightMode == 3) {  // randomize colorNew and step colorPwr to it
     if (millis() - previousMillis > interval) {
       // save the last time you blinked the LED 
       previousMillis = millis();
@@ -430,7 +433,24 @@ void loop()
       writeLED();
     }
   }
-
+  if (lightMode == 4) {  // Pride flag colors
+    if (isColor(94,0,255)) {
+      colorVal = 0;
+    } else if (isColor(255,0,0)) {
+      colorVal = 40;
+    } else if (isColor(255,60,0)) {
+      colorVal = 140;
+    } else if (isColor(255,210,0)) {
+      colorVal = 341;
+    } else if (isColor(0,255,0)) {
+      colorVal = 682;
+    } else if (isColor(0,0,255)) {
+      colorVal = 745;
+    }
+    //setColor();
+    fadeTo(interval);
+  }
+  
   if (lightMode == 10) { // Sleep mode
     if (millis() - previousMillis > 8000) {
       previousMillis = millis();
@@ -474,7 +494,7 @@ void turnOn(int mode) {
   }
 }
 
-void fadeTo() {
+void fadeTo(int fadeSpeed) {
   int colors[3];
   calcColor(colors);
   calcPower(colors);
@@ -483,7 +503,7 @@ void fadeTo() {
   greenNew = colors[1];
   blueNew = colors[2];
 
-  if (millis() - previousMillis > 1) {
+  if (millis() - previousMillis > fadeSpeed) {
     // save the last time you blinked the LED 
     previousMillis = millis();
     if (redPwr > redNew) {
@@ -533,6 +553,13 @@ void writeLED() {
   analogWrite(ledBlue, bluePwr);
 }
 
+boolean isColor(int red, int green, int blue) {
+  if ((redPwr == red) && (greenPwr == green) && (bluePwr == blue)) {
+    return true;
+  } else {
+    return false;
+  }
+}
 
 void calcColor(int *colors) {
   int red;
