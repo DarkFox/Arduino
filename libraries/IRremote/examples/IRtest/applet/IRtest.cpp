@@ -17,7 +17,12 @@
 // void * to work around compiler issue
 //void dump(void *v) {
 //  decode_results *results = (decode_results *)v
-#include "WProgram.h"
+#if defined(ARDUINO) && ARDUINO >= 100
+  #include "Arduino.h"
+#else
+  #include "WProgram.h"
+  #include <pins_arduino.h>
+#endif
 void dump(decode_results *results);
 void verify(unsigned long val, int bits, int type);
 void testNEC(unsigned long val, int bits);

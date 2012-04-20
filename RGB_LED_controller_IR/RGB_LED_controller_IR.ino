@@ -1,6 +1,7 @@
 #include <stdarg.h>
 #include <EEPROM.h>
 #include <IRremote.h>
+#include <IRremoteInt.h>
 
 /* 
 RGB LED IR controller for Arduino
@@ -12,9 +13,9 @@ http://genericnerd.blogspot.com/2009/05/arduino-mood-light-controller.html
 */
 
 // set the ledPins
-int ledRed = 9;
+int ledRed = 5;
 int ledGreen = 6;
-int ledBlue = 5;
+int ledBlue = 9;
 
 int lastCode;
 int code;
@@ -51,7 +52,7 @@ long previousDelayMillis = 0; // Will store last time button was pressed
 long buttonDelay = 200;        // Delay before repeating button press
 
 long previousMillis = 0;      // will store last time thing was updated
-long interval = 50;           // interval at which to blink (milliseconds) (0 - 4095) Saved in EEPROM address 5+6
+long interval = 10;           // interval at which to blink (milliseconds) (0 - 4095) Saved in EEPROM address 5+6
 
 int pulseState = 255; // Save where the pulse is. Starting high.
 int pulseDir = 0;     // Pulse direction
@@ -82,14 +83,180 @@ void setup()
   //pinMode(potPin, INPUT);
 
   irrecv.enableIRIn(); // Start the receiver
-
+  
+  lightMode = 1;
+  
   // serial
   Serial.begin(9600);
+  Serial.println("--RGB LED controller booted and ready--");
 }
 
 void loop()
 {
+  getIrCmd();
 
+  switch(lightMode) {
+    case 0:
+    mdOff();
+    break;
+    case 1:
+    mdOn();
+    break;
+    case 2:
+    mdPulse();
+    break;
+    case 3:
+    mdRandomFade();
+    break;
+    case 4:
+    mdRainbow();
+    break;
+    case 5:
+    mdStrobe();
+    break;
+    case 10:
+    mdSleep();
+    break;    
+    default:
+    mdOff();
+  }
+}
+
+// Off
+void mdOff() {
+  powerVal = 0;
+  fadeTo(1);
+}
+
+// On - Solid
+void mdOn() {
+ fadeTo(1);
+}
+
+// Pulsing
+void mdPulse() {
+  if (millis() - previousMillis > interval) {
+    previousMillis = millis();
+    setColor();
+    
+    if (pulseState > powerVal) {
+      pulseState = powerVal;
+    }
+    
+    if (pulseDir == 0) {
+      pulseState--;
+      
+      if (pulseState == 0) {
+        pulseDir = 1;
+      }
+    } else {
+      pulseState++;
+      
+      if (pulseState >= powerVal) {
+        pulseDir = 0;
+      }
+    }
+    
+    redPwr = map(redPwr, 0, 255, 0, pulseState);
+    bluePwr = map(bluePwr, 0, 255, 0, pulseState);
+    greenPwr = map(greenPwr, 0, 255, 0, pulseState);
+    
+    
+    writeLED();
+  }
+}
+
+// Fade to random
+void mdRandomFade() {
+  if (millis() - previousMillis > interval) {
+    previousMillis = millis();
+    
+    if (redPwr > redNew) {
+      redPwr--;
+    } 
+    if (redPwr < redNew) {
+      redPwr++;
+    }
+    if (greenPwr > greenNew) {
+      greenPwr--;
+    } 
+    if (greenPwr < greenNew) {
+      greenPwr++;
+    }
+    if (bluePwr > blueNew) {
+      bluePwr--;
+    } 
+    if (bluePwr < blueNew) {
+      bluePwr++;
+    }
+
+    // If all Pwr match New get new colors
+    if ((redPwr == redNew) && (greenPwr == greenNew) && (bluePwr == blueNew)) {
+      redNew = random(254);
+      greenNew = random(254);
+      blueNew = random(254);
+    }
+    
+    writeLED();
+  }
+}
+
+// Rainbow flag fade
+void mdRainbow() {
+  if (isColor(94,0,255)) {
+    colorVal = 0;
+  } else if (isColor(255,0,0)) {
+    colorVal = 40;
+  } else if (isColor(255,60,0)) {
+    colorVal = 140;
+  } else if (isColor(255,210,0)) {
+    colorVal = 341;
+  } else if (isColor(0,255,0)) {
+    colorVal = 682;
+  } else if (isColor(0,0,255)) {
+    colorVal = 745;
+  }
+  //setColor();
+  fadeTo(interval);
+}
+
+// Strobe
+void mdStrobe() {
+  if (millis() - previousMillis > interval) {
+    previousMillis = millis();
+    
+    if (powerVal == 0) {
+      powerVal = 255;
+    } else {
+      powerVal = 0;
+    }
+  
+    setColor();
+    setPower();
+    writeLED();
+  }
+}
+
+// Sleep
+void mdSleep() {
+  if (millis() - previousMillis > 8000) {
+    previousMillis = millis();
+    
+    powerVal--;
+    
+    setColor();
+    setPower();
+    
+    writeLED();
+    
+    if (powerVal == 0) {
+      powerVal = 255;
+      changeMode(0);
+    }
+  }
+}
+
+void getIrCmd() {
   if (irrecv.decode(&results)) {
     //Serial.println(results.value, HEX);
     irrecv.resume(); // Receive the next value
@@ -135,54 +302,56 @@ void loop()
  
       case 0x61D640BF: // 2
       turnOn(1);
-      colorVal = 40; // Orange
+      colorVal = 341; // Green
       break;
 
       case 0x61D6C03F: // 3
       turnOn(1);
-      colorVal = 140; // Yellow
+      colorVal = 682; // Blue
       break;
 
       case 0x61D620DF: // 4
       turnOn(1);
-      colorVal = 250; // Lime
+      colorVal = 40; // Orange
       break;
 
       case 0x61D6A05F: // 5
       turnOn(1);
-      colorVal = 341; // Green
+      colorVal = 400; // Turquoise
       break;
 
       case 0x61D6609F: // 6
       turnOn(1);
-      colorVal = 400; // Cyan
+      colorVal = 745; // Purple
       break;
 
       case 0x61D6E01F: // 7
       turnOn(1);
-      colorVal = 630; // Light blue
+      colorVal = 140; // Yellow
       break;
 
       case 0x61D610EF: // 8
       turnOn(1);
-      colorVal = 682; // Blue
+      colorVal = 512; // Cyan
       break;
 
       case 0x61D6906F: // 9
       turnOn(1);
-      colorVal = 745; // Purple
+      colorVal = 975; // Pink
       break;
 
       case 0x61D600FF: // 0
       turnOn(1);
-      colorVal = 975; // Pink
+      colorVal = 630; // Light blue
       break;
 
       case 0x61D650AF: // Recall
-      changeMode(1);
+      turnOn(1);
+      colorVal = 250; // Lime
       break;
 
       case 0x61D628D7: // Menu
+      changeMode(1);
       break;
 
       case 0x61D6E817: // +100
@@ -192,21 +361,7 @@ void loop()
 
       case 0x61D608F7: // Info
       if (results.value != 0xFFFFFFFF) {
-        Serial.println("--Info--");
-        Serial.print("mode: ");
-        Serial.println(lightMode, DEC);
-        Serial.print("colorVal: ");
-        Serial.println(colorVal, DEC);
-        Serial.print("powerVal: ");
-        Serial.println(powerVal, DEC);
-        Serial.print("interval: ");
-        Serial.println(interval, DEC);
-        Serial.print("R: ");
-        Serial.print(redPwr, DEC);
-        Serial.print(" G: ");
-        Serial.print(greenPwr, DEC);
-        Serial.print(" B: ");
-        Serial.println(bluePwr, DEC);
+        printInfoToSerial();
       }
       break;
 
@@ -255,6 +410,10 @@ void loop()
           changeMode(2);
           break;
           case 2:
+          changeMode(5);
+          break;
+          case 5:
+          powerVal = 255;
           changeMode(3);
           break;
           case 3:
@@ -327,129 +486,33 @@ void loop()
       break;
     }
     
-    EEPROM.write(0, lightMode);
-    
-    saveBig(colorVal, 1, 2);
-    
-    saveBig(powerVal, 3, 4);
-    
-    saveBig(interval, 5, 6);
+    saveState();
   } // End IR control
+}
 
-  if (lightMode == 0) {      // turn light off
-    powerVal = 0;
-    fadeTo(1);
-  }
-  if (lightMode == 1) {        // set fixed color
-    /*setColor();
-    setPower();
+void saveState() {
+  EEPROM.write(0, lightMode);
+  saveBig(colorVal, 1, 2);
+  saveBig(powerVal, 3, 4);
+  saveBig(interval, 5, 6);
+}
 
-    writeLED();*/
-    fadeTo(1);
-  }
-
-  if (lightMode == 2) {     // pulse fixed color
-    if (millis() - previousMillis > interval) {
-      // save the last time you blinked the LED 
-      previousMillis = millis();
-      setColor();
-      
-      if (pulseState > powerVal) {
-        pulseState = powerVal;
-      }
-      
-      if (pulseDir == 0) {
-        pulseState--;
-        
-        if (pulseState == 0) {
-          pulseDir = 1;
-        }
-      } else {
-        pulseState++;
-        
-        if (pulseState >= powerVal) {
-          pulseDir = 0;
-        }
-      }
-      
-      redPwr = map(redPwr, 0, 255, 0, pulseState);
-      bluePwr = map(bluePwr, 0, 255, 0, pulseState);
-      greenPwr = map(greenPwr, 0, 255, 0, pulseState);
-      
-      
-      writeLED();
-    }
-  }
-
-  if (lightMode == 3) {  // randomize colorNew and step colorPwr to it
-    if (millis() - previousMillis > interval) {
-      // save the last time you blinked the LED 
-      previousMillis = millis();
-      
-      if (redPwr > redNew) {
-        redPwr--;
-      } 
-      if (redPwr < redNew) {
-        redPwr++;
-      }
-      if (greenPwr > greenNew) {
-        greenPwr--;
-      } 
-      if (greenPwr < greenNew) {
-        greenPwr++;
-      }
-      if (bluePwr > blueNew) {
-        bluePwr--;
-      } 
-      if (bluePwr < blueNew) {
-        bluePwr++;
-      }
-
-      // If all Pwr match New get new colors
-      if ((redPwr == redNew) && (greenPwr == greenNew) && (bluePwr == blueNew)) {
-            redNew = random(254);
-            greenNew = random(254);
-            blueNew = random(254);
-      }
-      
-      writeLED();
-    }
-  }
-  if (lightMode == 4) {  // Pride flag colors
-    if (isColor(94,0,255)) {
-      colorVal = 0;
-    } else if (isColor(255,0,0)) {
-      colorVal = 40;
-    } else if (isColor(255,60,0)) {
-      colorVal = 140;
-    } else if (isColor(255,210,0)) {
-      colorVal = 341;
-    } else if (isColor(0,255,0)) {
-      colorVal = 682;
-    } else if (isColor(0,0,255)) {
-      colorVal = 745;
-    }
-    //setColor();
-    fadeTo(interval);
-  }
-  
-  if (lightMode == 10) { // Sleep mode
-    if (millis() - previousMillis > 8000) {
-      previousMillis = millis();
-      
-      powerVal--;
-      
-      setColor();
-      setPower();
-      
-      writeLED();
-      
-      if (powerVal == 0) {
-        powerVal = 255;
-        changeMode(0);
-      }
-    }
-  }
+void printInfoToSerial() {
+  Serial.println("--Info--");
+  Serial.print("mode: ");
+  Serial.println(lightMode, DEC);
+  Serial.print("colorVal: ");
+  Serial.println(colorVal, DEC);
+  Serial.print("powerVal: ");
+  Serial.println(powerVal, DEC);
+  Serial.print("interval: ");
+  Serial.println(interval, DEC);
+  Serial.print("R: ");
+  Serial.print(redPwr, DEC);
+  Serial.print(" G: ");
+  Serial.print(greenPwr, DEC);
+  Serial.print(" B: ");
+  Serial.println(bluePwr, DEC);
 }
 
 void changeMode(int mode) {
