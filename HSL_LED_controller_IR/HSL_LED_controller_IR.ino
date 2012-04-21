@@ -512,15 +512,18 @@ void getSerialCmd() {
   if (Serial.available() > 0) {
     switch (serialMode) {
       case 0:
+        // Set serial mode.
         serialMode = Serial.read();
         Serial.write(1);
         break;
       case 1:
+        // Change light mode.
         changeMode(Serial.read());
         serialMode = 0;
         Serial.write(1);
         break;
       case 2:
+        // Set hue, 2 (2 rounds)
         if (getSerialBigInt == 0) {
           serialBigInt1 = Serial.read();
           getSerialBigInt = 1;
@@ -533,13 +536,28 @@ void getSerialCmd() {
         Serial.write(1);
         break;
       case 3:
+        // Set saturation
         satVal = Serial.read();
         serialMode = 0;
         Serial.write(1);
         break;
       case 4:
+        // Set luminescence
         lumVal = Serial.read();
         serialMode = 0;
+        Serial.write(1);
+        break;
+      case 5:
+        // Set interval
+        if (getSerialBigInt == 0) {
+          serialBigInt1 = Serial.read();
+          getSerialBigInt = 1;
+        } else {
+          serialBigInt2 = Serial.read();
+          interval = serialBigInt1 * 255 + serialBigInt2;
+          getSerialBigInt = 0;
+          serialMode = 0;
+        }
         Serial.write(1);
         break;
     }
