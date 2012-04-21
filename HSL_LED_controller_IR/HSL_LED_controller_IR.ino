@@ -23,6 +23,12 @@ int RECV_PIN = 2;
 IRrecv irrecv(RECV_PIN);
 decode_results results;
 
+byte serialMode = 0;
+byte getSerialBigInt = 0;
+
+int serialBigInt1;
+int serialBigInt2;
+
 // LED Power variables
 byte redPwr = 0;
 byte greenPwr = 0;
@@ -97,13 +103,14 @@ void loadConfig() {
 void loop()
 {
   getIrCmd();
+  getSerialCmd();
 
   switch(lightMode) {
     case 0:
     mdOff();
     break;
     case 1:
-    mdOn();
+    mdSolid();
     break;
     case 2:
     mdPulse();
@@ -119,7 +126,9 @@ void loop()
     break;
     case 6:
     mdSleep();
-    break;    
+    break;
+    case 99:
+    // Freewheeling, let serial run the show. 
     default:
     mdOff();
   }
@@ -132,7 +141,7 @@ void mdOff() {
 }
 
 // On - Solid
-void mdOn() {
+void mdSolid() {
   fadeTo(1);
 }
 
@@ -430,7 +439,6 @@ void getIrCmd() {
       break;
 
       case 0x61D68877: // TV/AV
-      
       break;
 
       case 0x61D6B04F: // Mode
@@ -499,6 +507,45 @@ void getIrCmd() {
   } // End IR control
 }
 
+void getSerialCmd() {
+  // check if data has been sent from the computer:
+  if (Serial.available() > 0) {
+    switch (serialMode) {
+      case 0:
+        serialMode = Serial.read();
+        Serial.write(1);
+        break;
+      case 1:
+        changeMode(Serial.read());
+        serialMode = 0;
+        Serial.write(1);
+        break;
+      case 2:
+        if (getSerialBigInt == 0) {
+          serialBigInt1 = Serial.read();
+          getSerialBigInt = 1;
+        } else {
+          serialBigInt2 = Serial.read();
+          hueVal = serialBigInt1 * 255 + serialBigInt2;
+          getSerialBigInt = 0;
+          serialMode = 0;
+        }
+        Serial.write(1);
+        break;
+      case 3:
+        satVal = Serial.read();
+        serialMode = 0;
+        Serial.write(1);
+        break;
+      case 4:
+        lumVal = Serial.read();
+        serialMode = 0;
+        Serial.write(1);
+        break;
+    }
+  }
+}
+
 void saveState() {
   EEPROM.write(0, lightMode);
   saveBig(hueVal, 1, 2);
@@ -548,7 +595,6 @@ void turnOn(int mode) {
 }
 
 void fadeTo(int fadeSpeed) {
-
   byte rgb[3];
   hslToRgb( hueVal, satVal, lumVal, rgb );
 
