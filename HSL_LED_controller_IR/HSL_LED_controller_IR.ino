@@ -392,16 +392,27 @@ void getIrCmd() {
 
       case 0x61D6D02F: // Up
       if (results.value != 0xFFFFFFFF) {
-        hueVal++;
+        satVal++;
       } else {
-        hueVal = hueVal+10;
+        satVal = satVal+10;
       }
-      if (hueVal > 360) {
-        hueVal = hueVal-360;
+      if (satVal > 255) {
+        satVal = 255;
       }
       break;
 
       case 0x61D6A857: // Down
+      if (results.value != 0xFFFFFFFF) {
+        satVal--;
+      } else {
+        satVal = satVal-10;
+      }
+      if (satVal < 0) {
+        satVal = 0;
+      }
+      break;
+
+      case 0x61D618E7: // Left
       if (results.value != 0xFFFFFFFF) {
         hueVal--;
       } else {
@@ -412,25 +423,14 @@ void getIrCmd() {
       }
       break;
 
-      case 0x61D618E7: // Left
-      if (results.value != 0xFFFFFFFF) {
-        satVal++;
-      } else {
-        satVal = satVal+10;
-      }
-      if (satVal > 255) {
-        satVal = 255;
-      }
-      break;
-
       case 0x61D630CF: // Right
       if (results.value != 0xFFFFFFFF) {
-        satVal--;
+        hueVal++;
       } else {
-        satVal = satVal-10;
+        hueVal = hueVal+10;
       }
-      if (satVal < 0) {
-        satVal = 0;
+      if (hueVal > 360) {
+        hueVal = hueVal-360;
       }
       break;
 
