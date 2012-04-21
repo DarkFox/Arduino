@@ -324,7 +324,7 @@ void getIrCmd() {
         changeMode(4);
       } else {
         turnOn(1);
-        hueVal = 30; // Orange
+        hueVal = 10; // Orange
       }
       break;
 
@@ -333,7 +333,7 @@ void getIrCmd() {
         changeMode(5);
       } else {
         turnOn(1);
-        hueVal = 150; // Sea Foam
+        hueVal = 135; // Sea Foam
       }
       break;
 
@@ -342,13 +342,13 @@ void getIrCmd() {
         changeMode(6);
       } else {
         turnOn(1);
-        hueVal = 300; // Purple
+        hueVal = 270; // Purple
       }
       break;
 
       case 0x61D6E01F: // 7
       turnOn(1);
-      hueVal = 60; // Yellow
+      hueVal = 45; // Yellow
       break;
 
       case 0x61D610EF: // 8
@@ -358,7 +358,7 @@ void getIrCmd() {
 
       case 0x61D6906F: // 9
       turnOn(1);
-      hueVal = 330; // Pink
+      hueVal = 350; // Pink
       break;
 
       case 0x61D600FF: // 0
@@ -368,7 +368,7 @@ void getIrCmd() {
 
       case 0x61D650AF: // Recall
       turnOn(1);
-      hueVal = 90; // Lime
+      hueVal = 80; // Lime
       break;
 
       case 0x61D628D7: // Menu
